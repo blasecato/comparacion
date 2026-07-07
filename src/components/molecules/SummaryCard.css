@@ -1,0 +1,57 @@
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: var(--card-bg);
+  color: var(--rise-text);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.summary-card--active {
+  border-color: var(--card-fg);
+  box-shadow: 0 0 0 2px var(--card-fg) inset;
+}
+
+.summary-card__icon {
+  font-size: 22px;
+  color: var(--card-fg);
+}
+
+.summary-card__count {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--card-fg);
+  line-height: 1;
+}
+
+.summary-card__label {
+  font-size: 13px;
+  color: var(--rise-text);
+}
+
+.summary-card--correcto {
+  --card-bg: #e9f9ef;
+  --card-fg: #16a34a;
+}
+.summary-card--error {
+  --card-bg: #fdecec;
+  --card-fg: #dc2626;
+}
+.summary-card--pdf {
+  --card-bg: #fdf5e6;
+  --card-fg: #d97706;
+}
+.summary-card--excel {
+  --card-bg: #eaf2fd;
+  --card-fg: #2563eb;
+}

@@ -1,0 +1,44 @@
+:root {
+  /* Tokens de la app RISE */
+  --rise-bg: #f5f6f8;
+  --rise-surface: #ffffff;
+  --rise-border: #e8e9ee;
+  --rise-text: #5b6172;
+  --rise-text-strong: #1f2430;
+  --rise-text-muted: #9aa0ae;
+  --rise-hover: #f1f2f6;
+  --rise-accent: #7c4dff;
+  --rise-active-bg: #1f2430;
+  --rise-active-text: #ffffff;
+
+  --sans: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  font: 14px/1.45 var(--sans);
+  color: var(--rise-text);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--rise-bg);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}

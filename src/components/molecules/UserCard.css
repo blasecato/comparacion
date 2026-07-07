@@ -1,0 +1,29 @@
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+}
+
+.user-card__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--rise-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.user-card__name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--rise-text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

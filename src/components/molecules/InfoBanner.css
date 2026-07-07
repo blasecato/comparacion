@@ -1,0 +1,39 @@
+.info-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--rise-hover);
+  border: 1px solid var(--rise-border);
+  border-radius: 10px;
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.info-banner__label {
+  font-size: 12px;
+  color: var(--rise-text-muted);
+  margin-bottom: 4px;
+}
+
+.info-banner__main {
+  font-size: 14px;
+  color: var(--rise-text-strong);
+  font-weight: 600;
+}
+
+.info-banner__sub {
+  font-size: 12px;
+  color: var(--rise-text);
+  margin-top: 4px;
+}
+
+.info-banner__badge {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border: 1px solid var(--rise-border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--rise-text);
+  background: var(--rise-surface);
+}

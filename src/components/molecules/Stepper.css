@@ -1,0 +1,28 @@
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 4px 4px;
+}
+
+.stepper__item {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.stepper__item:last-child {
+  flex: 0 0 auto;
+}
+
+.stepper__line {
+  flex: 1;
+  height: 2px;
+  margin: 17px 8px 0;
+  background: var(--rise-border);
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.stepper__line--done {
+  background: #22c55e;
+}

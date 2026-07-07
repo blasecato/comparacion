@@ -1,0 +1,31 @@
+.wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.wizard__stepper,
+.wizard__panel {
+  background: var(--rise-surface);
+  border: 1px solid var(--rise-border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.wizard__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.wizard__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--rise-border);
+  padding-top: 16px;
+}
+
+.wizard__footer:empty {
+  display: none;
+}
