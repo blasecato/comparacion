@@ -3,6 +3,7 @@ import { Table, Tag, Button, Modal, Descriptions } from 'antd'
 import { EyeOutlined, ExclamationCircleFilled } from '@ant-design/icons'
 import StatusTag from '../atoms/StatusTag'
 import { STATUS } from '../../lib/compare'
+import { ageCategory } from '../../lib/normalize'
 
 const ORIGEN_COLOR = {
   Ambos: 'green',
@@ -35,6 +36,18 @@ function ResultsTable({ rows }) {
       ),
     },
     { title: 'Tipo', dataIndex: 'tipo', key: 'tipo' },
+    {
+      title: 'Mayor/Menor',
+      key: 'edad',
+      render: (_, row) => {
+        const cat = ageCategory(row.tipo)
+        return (
+          <Tag color={cat === 'Menor' ? 'orange' : 'blue'} bordered={false}>
+            {cat}
+          </Tag>
+        )
+      },
+    },
     { title: 'Numero', dataIndex: 'numero', key: 'numero' },
     { title: 'Nombre', dataIndex: 'nombre', key: 'nombre' },
     { title: 'Pag.', dataIndex: 'pag', key: 'pag', render: (v) => v || '—' },

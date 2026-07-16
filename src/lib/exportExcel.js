@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx'
 import { STATUS } from './compare'
+import { ageCategory } from './normalize'
 
 const ESTADO_LABEL = {
   [STATUS.CORRECTO]: 'Correcto',
@@ -21,6 +22,7 @@ export function exportRowsToExcel(rows, filename = 'validacion') {
     Estado: ESTADO_LABEL[r.estado] || r.estado,
     Origen: r.origen,
     Tipo: r.tipo,
+    'Mayor/Menor': ageCategory(r.tipo),
     Numero: r.numero,
     Nombre: r.nombre,
     'Nombre PDF': r.detalle?.pdfNombre || '',

@@ -1,30 +1,20 @@
 import {
-  DashboardOutlined,
   SafetyOutlined,
-  FileTextOutlined,
-  ToolOutlined,
   HistoryOutlined,
   MessageOutlined,
   AppstoreOutlined,
   TeamOutlined,
   SafetyCertificateOutlined,
-  LayoutOutlined,
-  SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons'
 import Logo from '../atoms/Logo'
 import IconButton from '../atoms/IconButton'
 import NavSection from '../molecules/NavSection'
-import NavButton from '../atoms/NavButton'
-import UserCard from '../molecules/UserCard'
 import './Sidebar.css'
 
 const mainItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: <DashboardOutlined /> },
   { to: '/validacion', label: 'Validacion', icon: <SafetyOutlined /> },
-  { to: '/fichas', label: 'Fichas', icon: <FileTextOutlined /> },
-  { to: '/herramientas', label: 'Herramientas', icon: <ToolOutlined /> },
   { to: '/historial', label: 'Historial', icon: <HistoryOutlined /> },
   { to: '/mensajes', label: 'Mensajes', icon: <MessageOutlined />, count: 0 },
 ]
@@ -45,15 +35,9 @@ const adminItems = [
   },
 ]
 
-const footerItems = [
-  { to: '/personalizar', label: 'Personalizar', icon: <LayoutOutlined /> },
-  { to: '/configuracion', label: 'Configuracion', icon: <SettingOutlined /> },
-]
-
 /**
- * Organismo: menú lateral completo. Compone el logo, las secciones de
- * navegación (moléculas), el contador de servicio, accesos de pie y la
- * tarjeta de usuario.
+ * Organismo: menú lateral. Compone el logo y las secciones de navegación
+ * (moléculas NavSection con átomos NavButton).
  */
 function Sidebar({ collapsed = false, onToggle }) {
   return (
@@ -70,21 +54,6 @@ function Sidebar({ collapsed = false, onToggle }) {
       <div className="sidebar__scroll">
         <NavSection items={mainItems} collapsed={collapsed} />
         <NavSection title="Admin" items={adminItems} collapsed={collapsed} />
-      </div>
-
-      <div className="sidebar__footer">
-        <div className="sidebar__footer-links">
-          {footerItems.map((item) => (
-            <NavButton
-              key={item.to}
-              to={item.to}
-              icon={item.icon}
-              label={item.label}
-              collapsed={collapsed}
-            />
-          ))}
-        </div>
-        <UserCard collapsed={collapsed} />
       </div>
     </aside>
   )

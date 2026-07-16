@@ -13,16 +13,7 @@ function App() {
           <Routes>
         <Route element={<MainLayout />}>
           <Route index element={<Navigate to="/validacion" replace />} />
-          <Route
-            path="/dashboard"
-            element={<PlaceholderPage title="Dashboard" />}
-          />
           <Route path="/validacion" element={<ValidacionPage />} />
-          <Route path="/fichas" element={<PlaceholderPage title="Fichas" />} />
-          <Route
-            path="/herramientas"
-            element={<PlaceholderPage title="Herramientas" />}
-          />
           <Route
             path="/historial"
             element={<PlaceholderPage title="Historial" />}
@@ -46,14 +37,6 @@ function App() {
           <Route
             path="/admin/mensajes"
             element={<PlaceholderPage title="Mensajes Admin" />}
-          />
-          <Route
-            path="/personalizar"
-            element={<PlaceholderPage title="Personalizar" />}
-          />
-          <Route
-            path="/configuracion"
-            element={<PlaceholderPage title="Configuracion" />}
           />
           <Route
             path="*"

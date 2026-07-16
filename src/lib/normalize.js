@@ -24,6 +24,15 @@ export function cleanName(value) {
 }
 
 /**
+ * Categoría de edad según el tipo de documento:
+ * TI (tarjeta de identidad) => Menor; CC / pasaporte / otros => Mayor.
+ */
+export function ageCategory(tipo) {
+  const t = stripAccents(tipo).replace(/[^a-z]/g, '')
+  return t === 'ti' ? 'Menor' : 'Mayor'
+}
+
+/**
  * Clave de nombre independiente del orden: ordena las palabras para que
  * "AGRIPINA AVENDAÑO" y "AVENDAÑO AGRIPINA" comparen igual.
  */
