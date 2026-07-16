@@ -21,7 +21,14 @@ const slug = (s) => stripAccents(s).replace(/[^a-z0-9]+/g, '_')
  * Organismo (paso 4): resultados de la validación. Cuatro tarjetas-resumen
  * que filtran la tabla al hacer clic, más la tabla de registros.
  */
-function ResultsStep({ result, meta }) {
+function ResultsStep({
+  result,
+  meta,
+  title = 'Paso 7: Resultados de la Validación',
+  soloALabel = 'Solo en PDF',
+  soloBLabel = 'Solo en Excel',
+  filePrefix = 'validacion',
+}) {
   const [filter, setFilter] = useState(null)
   const { rows, summary } = result
 
@@ -45,14 +52,14 @@ function ResultsStep({ result, meta }) {
       variant: 'pdf',
       icon: <WarningOutlined />,
       count: summary.soloPdf,
-      label: 'Solo en PDF',
+      label: soloALabel,
     },
     {
       status: STATUS.SOLO_EXCEL,
       variant: 'excel',
       icon: <TableOutlined />,
       count: summary.soloExcel,
-      label: 'Solo en Excel',
+      label: soloBLabel,
     },
   ]
 
@@ -66,7 +73,7 @@ function ResultsStep({ result, meta }) {
 
   return (
     <div className="step">
-      <h3 className="step__title">Paso 4: Resultados de la Validación</h3>
+      <h3 className="step__title">{title}</h3>
 
       <InfoBanner
         ficha={meta.ficha}
@@ -111,7 +118,7 @@ function ResultsStep({ result, meta }) {
           onClick={() =>
             exportRowsToExcel(
               filtered,
-              `validacion_${filter ? slug(activeCard.label) : 'todos'}`
+              `${filePrefix}_${filter ? slug(activeCard.label) : 'todos'}`
             )
           }
           disabled={!filtered.length}

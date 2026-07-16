@@ -27,6 +27,8 @@ export function exportRowsToExcel(rows, filename = 'validacion') {
     Nombre: r.nombre,
     'Nombre PDF': r.detalle?.pdfNombre || '',
     'Nombre Excel': r.detalle?.excelNombre || '',
+    Documento: r.documento || '',
+    'Firmó': r.firmo || '',
     'Pag.': r.pag || '',
     Novedad: r.novedad,
   }))

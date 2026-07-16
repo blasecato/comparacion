@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Table, Input, Button, Tag, Popconfirm, Alert } from 'antd'
+import { Table, Input, Select, Button, Tag, Popconfirm, Alert } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import './step.css'
 
 let seq = 0
-const newRow = () => ({ id: `new-${seq++}`, doc: '', nombre: '', tipo: 'CC', pag: '' })
+const newRow = () => ({ id: `new-${seq++}`, doc: '', nombre: '', tipo: 'CC', pag: '', firmo: 'No' })
 
 const PAGE_SIZE = 15
 
@@ -63,6 +63,23 @@ function ReviewStep({ records, scanned, onChange }) {
           value={v}
           placeholder="Nombres y apellidos"
           onChange={(e) => update(r.id, 'nombre', e.target.value)}
+        />
+      ),
+    },
+    {
+      title: 'Firmó',
+      dataIndex: 'firmo',
+      width: 90,
+      render: (v, r) => (
+        <Select
+          size="small"
+          value={v || 'No'}
+          style={{ width: 74 }}
+          options={[
+            { value: 'Sí', label: 'Sí' },
+            { value: 'No', label: 'No' },
+          ]}
+          onChange={(val) => update(r.id, 'firmo', val)}
         />
       ),
     },

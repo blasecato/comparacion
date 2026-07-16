@@ -191,7 +191,26 @@ function detectRows(ctx, W, H) {
     const h = lines[i + 1] - lines[i]
     if (h >= 22 && h <= 80) bands.push([lines[i], lines[i + 1]])
   }
-  return { bands, xL, xR }
+  return { bands, xL, xR, dark }
+}
+
+/**
+ * ¿La celda de FIRMA de esta fila tiene tinta? La firma va en la última
+ * columna de la tabla (~12% derecho). Una celda vacía queda casi limpia
+ * (una raya o un punto), una firmada se llena de trazos.
+ */
+function tieneFirma(dark, W, xL, xR, y0, y1) {
+  const fL = Math.round(xL + (xR - xL) * 0.88)
+  let ink = 0
+  let area = 0
+  for (let y = y0 + 3; y < y1 - 3; y++) {
+    for (let x = fL + 5; x < xR - 5; x++) {
+      ink += dark[y * W + x]
+      area++
+    }
+  }
+  if (!area) return false
+  return ink / area > 0.05
 }
 
 /** Recorta una banda (fila) al 58% izquierdo de la tabla y la escala x2. */
@@ -210,7 +229,7 @@ function cropBand(canvas, xL, xR, y0, y1) {
  * Interpreta la línea OCR de una fila: primer número de 6-11 dígitos = doc;
  * el texto tras la última aparición de ese número (hasta la dirección) = nombre.
  */
-function parseBandLine(line, page) {
+function parseBandLine(line, page, firmo) {
   const clean = cleanName(line)
   const m = clean.match(/\b(\d{6,11})\b/)
   if (!m) return null
@@ -219,7 +238,7 @@ function parseBandLine(line, page) {
   let rest = clean.slice(idx + doc.length)
   rest = rest.split(/mpio|municipio|monta|@|gmail|hotmail|\.com/i)[0]
   const nombre = cleanName(rest.replace(/[^A-Za-zÁÉÍÓÚÑñáéíóú ]+/g, ' '))
-  return { doc, nombre, tipo: 'CC', pag: page }
+  return { doc, nombre, tipo: 'CC', pag: page, firmo }
 }
 
 /** OCR de todas las páginas escaneadas, fila por fila. */
@@ -233,9 +252,10 @@ async function ocrPages(pages, records, onProgress) {
   for (let p = 0; p < pages.length; p++) {
     const canvas = await renderPage(pages[p])
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    const { bands, xL, xR } = detectRows(ctx, canvas.width, canvas.height)
+    const { bands, xL, xR, dark } = detectRows(ctx, canvas.width, canvas.height)
     for (const [y0, y1] of bands) {
-      jobs.push({ canvas, xL, xR, y0, y1, page: p + 1 })
+      const firmo = tieneFirma(dark, canvas.width, xL, xR, y0, y1) ? 'Sí' : 'No'
+      jobs.push({ canvas, xL, xR, y0, y1, page: p + 1, firmo })
     }
   }
 
@@ -246,7 +266,7 @@ async function ocrPages(pages, records, onProgress) {
     for (let i = 0; i < jobs.length; i++) {
       const j = jobs[i]
       const { data } = await worker.recognize(cropBand(j.canvas, j.xL, j.xR, j.y0, j.y1))
-      const rec = parseBandLine(data.text, j.page)
+      const rec = parseBandLine(data.text, j.page, j.firmo)
       if (rec) records.push(rec)
       onProgress?.({
         stage: `Leyendo filas… (${i + 1}/${jobs.length})`,

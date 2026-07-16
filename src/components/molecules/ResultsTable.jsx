@@ -5,10 +5,9 @@ import StatusTag from '../atoms/StatusTag'
 import { STATUS } from '../../lib/compare'
 import { ageCategory } from '../../lib/normalize'
 
-const ORIGEN_COLOR = {
-  Ambos: 'green',
-  'Solo PDF': 'gold',
-  'Solo Excel': 'blue',
+const origenColor = (origen) => {
+  if (origen === 'Ambos') return 'green'
+  return /excel/i.test(origen) ? 'blue' : 'gold'
 }
 
 /**
@@ -30,7 +29,7 @@ function ResultsTable({ rows }) {
       dataIndex: 'origen',
       key: 'origen',
       render: (origen) => (
-        <Tag color={ORIGEN_COLOR[origen]} bordered={false}>
+        <Tag color={origenColor(origen)} bordered={false}>
           {origen}
         </Tag>
       ),
@@ -50,6 +49,37 @@ function ResultsTable({ rows }) {
     },
     { title: 'Numero', dataIndex: 'numero', key: 'numero' },
     { title: 'Nombre', dataIndex: 'nombre', key: 'nombre' },
+    ...(rows.some((r) => r.documento)
+      ? [
+          {
+            title: 'Documento',
+            dataIndex: 'documento',
+            key: 'documento',
+            render: (v) => (
+              <Tag color={v === 'OK' ? 'green' : 'red'} bordered={false}>
+                {v}
+              </Tag>
+            ),
+          },
+        ]
+      : []),
+    ...(rows.some((r) => r.firmo)
+      ? [
+          {
+            title: 'Firmó',
+            dataIndex: 'firmo',
+            key: 'firmo',
+            render: (v) =>
+              v === '—' ? (
+                '—'
+              ) : (
+                <Tag color={v === 'Sí' ? 'green' : 'red'} bordered={false}>
+                  {v}
+                </Tag>
+              ),
+          },
+        ]
+      : []),
     { title: 'Pag.', dataIndex: 'pag', key: 'pag', render: (v) => v || '—' },
     { title: 'Novedad', dataIndex: 'novedad', key: 'novedad' },
     {
@@ -106,12 +136,12 @@ function ResultsTable({ rows }) {
                 { key: 'doc', label: 'Documento', children: detail.numero },
                 {
                   key: 'pdf',
-                  label: 'Nombre en PDF',
+                  label: `Nombre en ${detail.detalle?.origenA || 'PDF'}`,
                   children: detail.detalle?.pdfNombre || '—',
                 },
                 {
                   key: 'excel',
-                  label: 'Nombre en Excel',
+                  label: `Nombre en ${detail.detalle?.origenB || 'Excel'}`,
                   children: detail.detalle?.excelNombre || '—',
                 },
               ]}

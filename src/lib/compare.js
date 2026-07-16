@@ -20,7 +20,9 @@ export const STATUS = {
  * - solo_pdf:    documento presente solo en el PDF.
  * - solo_excel:  documento presente solo en el Excel.
  */
-export function compareRecords(pdfRecords = [], excelRecords = []) {
+export function compareRecords(pdfRecords = [], excelRecords = [], opts = {}) {
+  const origenA = opts.origenA || 'PDF'
+  const origenB = opts.origenB || 'Excel'
   const pdfByDoc = indexByDoc(pdfRecords)
   const excelByDoc = indexByDoc(excelRecords)
 
@@ -43,11 +45,13 @@ export function compareRecords(pdfRecords = [], excelRecords = []) {
         pag: pdf.pag ?? '',
         novedad: same
           ? 'Datos verificados correctamente'
-          : 'El nombre no coincide entre el PDF y el Excel',
+          : `El nombre no coincide entre el ${origenA} y el ${origenB}`,
         detalle: same
           ? null
           : {
               motivo: 'Nombre diferente para el mismo número de documento',
+              origenA,
+              origenB,
               pdfNombre: pdf.nombre,
               excelNombre: excel.nombre,
             },
@@ -56,23 +60,23 @@ export function compareRecords(pdfRecords = [], excelRecords = []) {
       rows.push({
         key: doc,
         estado: STATUS.SOLO_PDF,
-        origen: 'Solo PDF',
+        origen: `Solo ${origenA}`,
         tipo: pdf.tipo || 'CC',
         numero: doc,
         nombre: pdf.nombre,
         pag: pdf.pag ?? '',
-        novedad: 'Presente en el PDF pero no en el Excel',
+        novedad: `Presente en el ${origenA} pero no en el ${origenB}`,
       })
     } else {
       rows.push({
         key: doc,
         estado: STATUS.SOLO_EXCEL,
-        origen: 'Solo Excel',
+        origen: `Solo ${origenB}`,
         tipo: excel.tipo || 'CC',
         numero: doc,
         nombre: excel.nombre,
         pag: '',
-        novedad: 'Presente en el Excel pero no en el PDF',
+        novedad: `Presente en el ${origenB} pero no en el ${origenA}`,
       })
     }
   }
@@ -87,6 +91,92 @@ export function compareRecords(pdfRecords = [], excelRecords = []) {
   }
 
   return { rows, summary }
+}
+
+/**
+ * Comparación de las TRES fuentes: Excel, PDF de cédulas y PDF de planilla.
+ * La llave sigue siendo el número de documento.
+ *
+ * Además del estado, cada fila trae:
+ *  - `documento`: 'OK' si la persona aparece en las tres fuentes con el mismo
+ *    número; 'No coincide' si falta en alguna.
+ *  - `firmo`: 'Sí' / 'No' según la firma detectada en la planilla ('—' si la
+ *    persona no está en la planilla).
+ */
+export function compareTriple(excelRecords = [], cedulasRecords = [], planillaRecords = []) {
+  const ex = indexByDoc(excelRecords)
+  const ce = indexByDoc(cedulasRecords)
+  const pl = indexByDoc(planillaRecords)
+
+  const rows = []
+  const docs = new Set([...ex.keys(), ...ce.keys(), ...pl.keys()])
+
+  for (const doc of docs) {
+    const e = ex.get(doc)
+    const c = ce.get(doc)
+    const p = pl.get(doc)
+
+    const fuentes = []
+    if (e) fuentes.push('Excel')
+    if (c) fuentes.push('Cédulas')
+    if (p) fuentes.push('Planilla')
+
+    const enLasTres = Boolean(e && c && p)
+    const nombres = [e?.nombre, c?.nombre, p?.nombre].filter(Boolean)
+    const nombresIguales =
+      nombres.length > 1 && nombres.every((n) => nameKey(n) === nameKey(nombres[0]))
+
+    let estado
+    if (enLasTres && nombresIguales) estado = STATUS.CORRECTO
+    else if (!e) estado = STATUS.SOLO_PDF
+    else if (!c && !p) estado = STATUS.SOLO_EXCEL
+    else estado = STATUS.ERROR
+
+    const faltantes = ['Excel', 'Cédulas', 'Planilla'].filter((f) => !fuentes.includes(f))
+    let novedad
+    if (estado === STATUS.CORRECTO) novedad = 'Datos verificados en las tres fuentes'
+    else if (!nombresIguales && fuentes.length > 1 && !faltantes.length)
+      novedad = 'El nombre no coincide entre las fuentes'
+    else novedad = `No aparece en: ${faltantes.join(', ')}`
+
+    rows.push({
+      key: doc,
+      estado,
+      origen: fuentes.join(' + ') || '—',
+      tipo: c?.tipo || e?.tipo || p?.tipo || 'CC',
+      numero: doc,
+      nombre: e?.nombre || c?.nombre || p?.nombre || '',
+      pag: p?.pag ?? c?.pag ?? '',
+      documento: enLasTres ? 'OK' : 'No coincide',
+      firmo: p ? p.firmo || 'No' : '—',
+      novedad,
+      detalle:
+        estado === STATUS.CORRECTO
+          ? null
+          : {
+              motivo: novedad,
+              origenA: 'Cédulas',
+              origenB: 'Excel',
+              pdfNombre: c?.nombre || p?.nombre || '—',
+              excelNombre: e?.nombre || '—',
+              fuentes: fuentes.join(', ') || 'ninguna',
+              faltantes: faltantes.join(', ') || 'ninguna',
+              planillaNombre: p?.nombre || '—',
+            },
+    })
+  }
+
+  rows.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+
+  return {
+    rows,
+    summary: {
+      correctos: rows.filter((r) => r.estado === STATUS.CORRECTO).length,
+      errores: rows.filter((r) => r.estado === STATUS.ERROR).length,
+      soloPdf: rows.filter((r) => r.estado === STATUS.SOLO_PDF).length,
+      soloExcel: rows.filter((r) => r.estado === STATUS.SOLO_EXCEL).length,
+    },
+  }
 }
 
 function indexByDoc(records) {

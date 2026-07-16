@@ -12,8 +12,8 @@ function App() {
         <BrowserRouter>
           <Routes>
         <Route element={<MainLayout />}>
-          <Route index element={<Navigate to="/validacion" replace />} />
-          <Route path="/validacion" element={<ValidacionPage />} />
+          <Route index element={<ValidacionPage />} />
+          <Route path="/validacion" element={<Navigate to="/" replace />} />
           <Route
             path="/historial"
             element={<PlaceholderPage title="Historial" />}

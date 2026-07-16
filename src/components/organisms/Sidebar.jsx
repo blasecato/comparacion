@@ -14,7 +14,7 @@ import NavSection from '../molecules/NavSection'
 import './Sidebar.css'
 
 const mainItems = [
-  { to: '/validacion', label: 'Validacion', icon: <SafetyOutlined /> },
+  { to: '/', label: 'Validacion', icon: <SafetyOutlined />, end: true },
   { to: '/historial', label: 'Historial', icon: <HistoryOutlined /> },
   { to: '/mensajes', label: 'Mensajes', icon: <MessageOutlined />, count: 0 },
 ]
