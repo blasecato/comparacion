@@ -8,22 +8,46 @@ const MESES = {
   JUL: '07', AGO: '08', SEP: '09', SET: '09', OCT: '10', NOV: '11', DIC: '12',
 }
 
-// Fechas tipo "10-FEB-2010". El OCR cambia guiones por = . _ ~ y a veces
-// mete espacios dentro del mes ("02-SE P-2010").
-const DATE_RE =
-  /(\d\s?\d?)\s*[-–=_.~]\s*([A-ZÑ]\s?[A-ZÑ]\s?[A-ZÑ])[A-ZÑ]*\s*[-–=_.~]\s*(\d\s?\d\s?\d\s?\d)/
+// Fechas de la cédula. Dos estilos de impresión conviven:
+//   "10-FEB-2010"  (guiones)      y   "02 NOV 2004" / "09 SEPT 2006" (espacios)
+// El OCR además cambia el separador por = . _ ~ y parte el mes ("02-SE P-2010").
+// Separador = uno o más de: espacio, guión, = . _ ~
+const SEP = '[\\s\\-–=_.~]+'
+const MES = '([A-ZÑ](?:\\s?[A-ZÑ]){2,3})' // 3-4 letras, con espacios sueltos
+const DATE_RE = new RegExp(
+  `(\\d\\s?\\d?)${SEP}${MES}${SEP}(\\d(?:\\s?\\d){3})`
+)
 const DATE_RE_G = new RegExp(DATE_RE.source, 'g')
 
-/** "10-FEB-2010" (con o sin espacios sueltos del OCR) -> "10/02/2010" */
+/** "10-FEB-2010" o "02 NOV 2004" -> "10/02/2010". Tolera SEPT, SET, espacios. */
 function toDate(match) {
   const [, dRaw, mesRaw, yRaw] = match
-  const mes = MESES[stripAccents(mesRaw).replace(/\s/g, '').toUpperCase()]
+  const key = stripAccents(mesRaw).replace(/\s/g, '').toUpperCase().slice(0, 3)
+  const mes = MESES[key]
   if (!mes) return null
   const d = dRaw.replace(/\s/g, '')
   const y = yRaw.replace(/\s/g, '')
   const dia = Number(d)
   if (!dia || dia > 31) return null
   return `${d.padStart(2, '0')}/${mes}/${y}`
+}
+
+/**
+ * Convierte una fecha en texto ("26-FEB-1980", "26 FEB 1980", "1980-02-26")
+ * a "DD/MM/AAAA". Devuelve '' si no reconoce una fecha.
+ */
+export function fechaADMY(value) {
+  const s = String(value ?? '').trim()
+  if (!s) return ''
+  // Ya viene como DD/MM/AAAA o DD-MM-AAAA (todo numérico)
+  const num = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/)
+  if (num) return `${num[1].padStart(2, '0')}/${num[2].padStart(2, '0')}/${num[3]}`
+  // AAAA-MM-DD (formato ISO típico de Excel)
+  const iso = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/)
+  if (iso) return `${iso[3].padStart(2, '0')}/${iso[2].padStart(2, '0')}/${iso[1]}`
+  // DD-MES-AAAA con nombre de mes
+  const m = s.match(DATE_RE)
+  return m ? toDate(m) || '' : ''
 }
 
 /** Todas las fechas presentes en un texto, en orden de aparición. */
@@ -274,5 +298,57 @@ export function parseCedulaText(text, page, back = null) {
     fechaVencimiento: back?.fechaVencimiento || fechaVencimiento || '',
     tipoSangre: back?.tipoSangre || tipoSangre,
     mayoria: mayoriaDeEdad(nacimiento, tipo),
+  }
+}
+
+/* ------------------------- Fusión multi-pasada ------------------------- */
+
+const esDoc = (v) => /^\d{8,11}$/.test((v || '').replace(/\D/g, ''))
+const esFecha = (v) => /^\d{2}\/\d{2}\/\d{4}$/.test(v || '')
+const esNombre = (v) =>
+  (v || '').trim().split(/\s+/).filter(Boolean).length >= 2
+const esSangre = (v) => /^(AB|A|B|O)[+-]?$/.test((v || '').replace(/\s/g, ''))
+const esLugar = (v) => {
+  const t = (v || '').trim()
+  return t.length >= 3 && !DATE_RE.test(t) && !/\d/.test(t)
+}
+
+const primero = (recs, field, test) => {
+  for (const r of recs) if (r && test(r[field])) return r[field]
+  return ''
+}
+
+/**
+ * Combina varios registros (uno por pasada de OCR) en el mejor resultado:
+ * para cada campo toma el primer valor válido entre todas las pasadas.
+ * Así, "toda la información" que aparezca en cualquier pasada se conserva.
+ */
+export function mergeRecords(recsRaw, page) {
+  const recs = recsRaw.filter(Boolean)
+  if (!recs.length) return null
+
+  const doc =
+    primero(recs, 'doc', esDoc) ||
+    primero(recs, 'doc', (v) => (v || '').replace(/\D/g, '').length >= 6) ||
+    recs[0].doc ||
+    ''
+  const nombre =
+    primero(recs, 'nombre', esNombre) ||
+    primero(recs, 'nombre', (v) => (v || '').trim().length >= 3) ||
+    ''
+  const tipo = primero(recs, 'tipo', (v) => v && v !== 'CC') || recs[0].tipo || 'CC'
+  const fechaNacimiento = primero(recs, 'fechaNacimiento', esFecha)
+
+  return {
+    pag: page,
+    doc: doc.replace(/\D/g, ''),
+    nombre,
+    tipo,
+    fechaNacimiento,
+    lugarNacimiento: primero(recs, 'lugarNacimiento', esLugar),
+    fechaExpedicion: primero(recs, 'fechaExpedicion', esFecha),
+    fechaVencimiento: primero(recs, 'fechaVencimiento', esFecha),
+    tipoSangre: primero(recs, 'tipoSangre', esSangre),
+    mayoria: mayoriaDeEdad(fechaNacimiento, tipo),
   }
 }

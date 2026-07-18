@@ -1,12 +1,22 @@
 import * as pdfjsLib from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-import { parseCedulaText, parseBackFields } from './cedulaFields'
+import { parseCedulaText, parseBackFields, mergeRecords } from './cedulaFields'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl
 
+const DATE_WHITELIST = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÑ+-.() '
+
 /**
- * Recorre TODAS las páginas del PDF de cédulas, hace OCR de cada una y
- * extrae los datos de la persona.
+ * Recorre TODAS las páginas del PDF de cédulas y hace VARIAS pasadas de OCR
+ * por página, combinando lo mejor de cada una (multi-pasada). Es más lento,
+ * pero recupera muchos más campos que una sola pasada.
+ *
+ * Pasadas por página:
+ *   1. Página completa, PSM 3  → nombres, tipo, número.
+ *   2. Página completa, PSM 6  → alternativa (a veces mejores nombres/fechas).
+ *   3. Franja derecha, PSM 4   → bloque de fechas del reverso.
+ *   4. Franja derecha, PSM 6   → alternativa del bloque de fechas.
+ * Se arman registros parciales con cada combinación y se fusionan.
  *
  * @param {File} file
  * @param {(info:{stage:string, progress:number}) => void} [onProgress]
@@ -22,29 +32,26 @@ export async function parseCedulas(file, onProgress) {
   const records = []
   try {
     for (let p = 1; p <= pdf.numPages; p++) {
-      const page = await pdf.getPage(p)
-      const viewport = page.getViewport({ scale: 3 })
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.floor(viewport.width)
-      canvas.height = Math.floor(viewport.height)
-      await page.render({
-        canvasContext: canvas.getContext('2d'),
-        viewport,
-        canvas,
-      }).promise
+      const canvas = await renderPage(pdf, p)
 
-      // 1) página completa: nombres, tipo y número de documento
-      await worker.setParameters({
-        tessedit_pageseg_mode: '3',
-        tessedit_char_whitelist: '',
-      })
-      const { data } = await worker.recognize(canvas)
+      // Pasadas de página completa (dos modos de segmentación).
+      const full3 = await ocr(worker, canvas, '3', '')
+      const full6 = await ocr(worker, canvas, '6', '')
 
-      // 2) pasada dirigida a la franja derecha del reverso: ahí van siempre
-      //    las fechas. Aislada y con whitelist se leen mucho mejor.
-      const back = await ocrBackStrip(worker, canvas)
+      // Pasadas dirigidas a la franja derecha del reverso (las fechas).
+      const strip = rightStrip(canvas)
+      const back4 = parseBackFields(await ocr(worker, strip, '4', DATE_WHITELIST))
+      const back6 = parseBackFields(await ocr(worker, strip, '6', DATE_WHITELIST))
 
-      const rec = parseCedulaText(data.text, p, back)
+      // Registros parciales cruzando fuentes de frente y reverso.
+      const parciales = [
+        parseCedulaText(full3, p, back4),
+        parseCedulaText(full6, p, back6),
+        parseCedulaText(full3, p, back6),
+        parseCedulaText(full6, p, back4),
+      ]
+
+      const rec = mergeRecords(parciales, p)
       if (rec) records.push(rec)
 
       onProgress?.({
@@ -59,23 +66,39 @@ export async function parseCedulas(file, onProgress) {
   return { records }
 }
 
-/**
- * OCR de la franja derecha de la página (donde va el bloque de fechas del
- * reverso), con PSM 4 y whitelist de fecha. Devuelve los campos del reverso.
- */
-async function ocrBackStrip(worker, canvas) {
+/** Rasteriza una página del PDF a un canvas (escala 3). */
+async function renderPage(pdf, p) {
+  const page = await pdf.getPage(p)
+  const viewport = page.getViewport({ scale: 3 })
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.floor(viewport.width)
+  canvas.height = Math.floor(viewport.height)
+  await page.render({
+    canvasContext: canvas.getContext('2d'),
+    viewport,
+    canvas,
+  }).promise
+  return canvas
+}
+
+/** Franja derecha del reverso (donde va el bloque de fechas), ampliada 2x. */
+function rightStrip(canvas) {
   const x0 = Math.floor(canvas.width * 0.38)
   const w = canvas.width - x0
   const h = canvas.height
   const strip = document.createElement('canvas')
-  strip.width = w * 2 // ampliar ayuda al OCR de las fechas
+  strip.width = w * 2
   strip.height = h * 2
   strip.getContext('2d').drawImage(canvas, x0, 0, w, h, 0, 0, w * 2, h * 2)
+  return strip
+}
 
+/** Una pasada de OCR con PSM y whitelist dados. */
+async function ocr(worker, canvas, psm, whitelist) {
   await worker.setParameters({
-    tessedit_pageseg_mode: '4',
-    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZÑ+-.() ',
+    tessedit_pageseg_mode: psm,
+    tessedit_char_whitelist: whitelist,
   })
-  const { data } = await worker.recognize(strip)
-  return parseBackFields(data.text)
+  const { data } = await worker.recognize(canvas)
+  return data.text
 }

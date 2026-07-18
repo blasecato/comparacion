@@ -6,8 +6,9 @@ import { nameKey } from './normalize'
 export const STATUS = {
   CORRECTO: 'correcto',
   ERROR: 'error',
-  SOLO_PDF: 'solo_pdf',
-  SOLO_EXCEL: 'solo_excel',
+  SOLO_PDF: 'solo_pdf', // solo en la fuente A (planilla / cédulas según el caso)
+  SOLO_EXCEL: 'solo_excel', // solo en el reporte de inscripción
+  SOLO_CEDULAS: 'solo_cedulas', // solo en las cédulas (comparación triple)
 }
 
 /**
@@ -126,10 +127,16 @@ export function compareTriple(excelRecords = [], cedulasRecords = [], planillaRe
     const nombresIguales =
       nombres.length > 1 && nombres.every((n) => nameKey(n) === nameKey(nombres[0]))
 
+    // Solo en una fuente = presente en esa y ausente en las otras dos.
+    const soloExcel = e && !c && !p
+    const soloCedulas = c && !e && !p
+    const soloPlanilla = p && !e && !c
+
     let estado
     if (enLasTres && nombresIguales) estado = STATUS.CORRECTO
-    else if (!e) estado = STATUS.SOLO_PDF
-    else if (!c && !p) estado = STATUS.SOLO_EXCEL
+    else if (soloExcel) estado = STATUS.SOLO_EXCEL
+    else if (soloCedulas) estado = STATUS.SOLO_CEDULAS
+    else if (soloPlanilla) estado = STATUS.SOLO_PDF
     else estado = STATUS.ERROR
 
     const faltantes = ['Excel', 'Cédulas', 'Planilla'].filter((f) => !fuentes.includes(f))
@@ -149,6 +156,8 @@ export function compareTriple(excelRecords = [], cedulasRecords = [], planillaRe
       pag: p?.pag ?? c?.pag ?? '',
       documento: enLasTres ? 'OK' : 'No coincide',
       firmo: p ? p.firmo || 'No' : '—',
+      correo: p ? p.correo || '' : '',
+      telefono: p ? p.telefono || '' : '',
       novedad,
       detalle:
         estado === STATUS.CORRECTO
@@ -175,6 +184,7 @@ export function compareTriple(excelRecords = [], cedulasRecords = [], planillaRe
       errores: rows.filter((r) => r.estado === STATUS.ERROR).length,
       soloPdf: rows.filter((r) => r.estado === STATUS.SOLO_PDF).length,
       soloExcel: rows.filter((r) => r.estado === STATUS.SOLO_EXCEL).length,
+      soloCedulas: rows.filter((r) => r.estado === STATUS.SOLO_CEDULAS).length,
     },
   }
 }

@@ -14,7 +14,7 @@ const origenColor = (origen) => {
  * Molécula: tabla de resultados. Las filas con error muestran un botón (ojo)
  * que abre un modal con el detalle de por qué falló la validación.
  */
-function ResultsTable({ rows }) {
+function ResultsTable({ rows, statusLabels }) {
   const [detail, setDetail] = useState(null)
 
   const columns = [
@@ -22,7 +22,9 @@ function ResultsTable({ rows }) {
       title: 'Estado',
       dataIndex: 'estado',
       key: 'estado',
-      render: (estado) => <StatusTag status={estado} />,
+      render: (estado) => (
+        <StatusTag status={estado} label={statusLabels?.[estado]} />
+      ),
     },
     {
       title: 'Origen',
@@ -49,6 +51,26 @@ function ResultsTable({ rows }) {
     },
     { title: 'Numero', dataIndex: 'numero', key: 'numero' },
     { title: 'Nombre', dataIndex: 'nombre', key: 'nombre' },
+    ...(rows.some((r) => r.correo)
+      ? [
+          {
+            title: 'Correo',
+            dataIndex: 'correo',
+            key: 'correo',
+            render: (v) => v || '—',
+          },
+        ]
+      : []),
+    ...(rows.some((r) => r.telefono)
+      ? [
+          {
+            title: 'Teléfono',
+            dataIndex: 'telefono',
+            key: 'telefono',
+            render: (v) => v || '—',
+          },
+        ]
+      : []),
     ...(rows.some((r) => r.documento)
       ? [
           {

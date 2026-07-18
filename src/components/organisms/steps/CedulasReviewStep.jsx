@@ -11,19 +11,29 @@ const newRow = () => ({
   doc: '',
   nombre: '',
   fechaNacimiento: '',
-  lugarNacimiento: '',
-  fechaExpedicion: '',
   tipoSangre: '',
-  pag: '',
+  mayoria: '',
 })
 
 const PAGE_SIZE = 10
 const TIPOS = ['CC', 'TI', 'CE', 'PA', 'PPT']
 
+const okDoc = (v) => /^\d{6,11}$/.test(v || '')
+const okFecha = (v) => /^\d{2}\/\d{2}\/\d{4}$/.test(v || '')
+const okTexto = (v) => (v || '').trim().length >= 3
+
+/** Campos que faltan o están mal en una fila (para resaltar y contar). */
+function issuesDe(r) {
+  const bad = []
+  if (!okDoc(r.doc)) bad.push('doc')
+  if (!okTexto(r.nombre)) bad.push('nombre')
+  if (!okFecha(r.fechaNacimiento)) bad.push('fechaNacimiento')
+  return bad
+}
+
 /**
- * Organismo (paso 3): revisión editable de los datos extraídos del PDF de
- * documentos de identidad. "Mayor/Menor" se calcula solo (fecha de
- * nacimiento, o el tipo de documento si no hay fecha).
+ * Organismo (paso 3): revisión editable de los datos del Excel de cédulas.
+ * "Mayor/Menor" viene del Excel o se calcula desde la fecha de nacimiento.
  */
 function CedulasReviewStep({ records, onChange }) {
   const [page, setPage] = useState(1)
@@ -33,12 +43,16 @@ function CedulasReviewStep({ records, onChange }) {
   const remove = (id) => onChange(records.filter((r) => r.id !== id))
   const add = () => onChange([...records, newRow()])
 
-  const text = (field, placeholder, width) => (v, r) => (
+  const totalIssues = records.reduce((n, r) => n + issuesDe(r).length, 0)
+  const filasConIssues = records.filter((r) => issuesDe(r).length > 0).length
+
+  // validator opcional: si el valor no pasa, el input se resalta.
+  const text = (field, placeholder, validator) => (v, r) => (
     <Input
       size="small"
       value={v}
       placeholder={placeholder}
-      style={width ? { width } : undefined}
+      status={validator && !validator(v) ? 'warning' : ''}
       onChange={(e) => update(r.id, field, e.target.value)}
     />
   )
@@ -74,7 +88,7 @@ function CedulasReviewStep({ records, onChange }) {
           size="small"
           value={v}
           placeholder="Documento"
-          status={v && !/^\d{6,12}$/.test(v) ? 'warning' : ''}
+          status={okDoc(v) ? '' : 'warning'}
           onChange={(e) => update(r.id, 'doc', e.target.value.replace(/\D/g, ''))}
         />
       ),
@@ -83,25 +97,13 @@ function CedulasReviewStep({ records, onChange }) {
       title: 'Nombre completo',
       dataIndex: 'nombre',
       width: 240,
-      render: text('nombre', 'Nombres y apellidos'),
+      render: text('nombre', 'Nombres y apellidos', okTexto),
     },
     {
       title: 'Fecha nacimiento',
       dataIndex: 'fechaNacimiento',
       width: 140,
-      render: text('fechaNacimiento', 'DD/MM/AAAA'),
-    },
-    {
-      title: 'Lugar nacimiento',
-      dataIndex: 'lugarNacimiento',
-      width: 190,
-      render: text('lugarNacimiento', 'Ciudad (Depto)'),
-    },
-    {
-      title: 'Fecha expedición',
-      dataIndex: 'fechaExpedicion',
-      width: 140,
-      render: text('fechaExpedicion', 'DD/MM/AAAA'),
+      render: text('fechaNacimiento', 'DD/MM/AAAA', okFecha),
     },
     {
       title: 'Sangre',
@@ -114,7 +116,11 @@ function CedulasReviewStep({ records, onChange }) {
       key: 'mayoria',
       width: 110,
       render: (_, r) => {
-        const cat = mayoriaDeEdad(r.fechaNacimiento, r.tipo)
+        const cat = /menor/i.test(r.mayoria)
+          ? 'Menor'
+          : /mayor/i.test(r.mayoria)
+            ? 'Mayor'
+            : mayoriaDeEdad(r.fechaNacimiento, r.tipo)
         return (
           <Tag color={cat === 'Menor' ? 'orange' : 'blue'} bordered={false}>
             {cat}
@@ -122,7 +128,6 @@ function CedulasReviewStep({ records, onChange }) {
         )
       },
     },
-    { title: 'Pág.', dataIndex: 'pag', width: 64 },
     {
       title: '',
       key: 'del',
@@ -137,21 +142,32 @@ function CedulasReviewStep({ records, onChange }) {
 
   return (
     <div className="step">
-      <h3 className="step__title">Paso 3: Revisar documentos de identidad</h3>
+      <h3 className="step__title">Paso 3: Revisar cédulas</h3>
       <p className="step__hint">
-        Verifica y corrige los datos extraídos de cada documento. Son
-        fotocopias, así que el OCR puede fallar — revisa sobre todo el número
-        de documento, las fechas y el tipo de sangre.
+        Verifica y corrige los datos del Excel de cédulas antes de comparar.
+        Puedes editar cualquier celda, agregar o eliminar filas.
       </p>
 
-      <Alert
-        type="warning"
-        showIcon
-        message="Extracción automática (OCR) sobre fotocopias: revisa antes de continuar."
-      />
+      {filasConIssues > 0 ? (
+        <Alert
+          type="warning"
+          showIcon
+          message={`${filasConIssues} de ${records.length} documentos tienen campos por revisar (${totalIssues} en total).`}
+          description="Los campos vacíos o inválidos aparecen resaltados en amarillo. Corrígelos antes de comparar."
+        />
+      ) : (
+        <Alert
+          type="success"
+          showIcon
+          message="Todos los campos están completos y con formato válido."
+        />
+      )}
 
       <div className="review__toolbar">
         <Tag>{records.length} documentos</Tag>
+        {filasConIssues > 0 && (
+          <Tag color="warning">{totalIssues} campos por revisar</Tag>
+        )}
         <Button size="small" icon={<PlusOutlined />} onClick={add}>
           Agregar fila
         </Button>
@@ -162,6 +178,7 @@ function CedulasReviewStep({ records, onChange }) {
         columns={columns}
         dataSource={records}
         size="small"
+        rowClassName={(r) => (issuesDe(r).length ? 'row--revisar' : '')}
         pagination={{
           pageSize: PAGE_SIZE,
           current: page,

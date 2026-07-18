@@ -31,6 +31,39 @@
   color: var(--rise-accent);
 }
 
+/* Campos del formulario (paso 1) */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rise-text-strong);
+}
+
+.field__req {
+  color: #dc2626;
+}
+
+.poblacion-group {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.poblacion-group__btn {
+  height: 40px;
+}
+
+@media (max-width: 700px) {
+  .poblacion-group {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* Revisar */
 .review__toolbar {
   display: flex;
@@ -38,17 +71,15 @@
   gap: 10px;
 }
 
+.row--revisar > td {
+  background: #fffbe6;
+}
+
 /* Resultados */
 .results__cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 14px;
-}
-
-@media (max-width: 900px) {
-  .results__cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 .results__toolbar {

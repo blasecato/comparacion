@@ -14,6 +14,20 @@
   flex: 0 0 auto;
 }
 
+.stepper__btn {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.stepper__btn:hover {
+  opacity: 0.75;
+  transform: translateY(-1px);
+}
+
 .stepper__line {
   flex: 1;
   height: 2px;

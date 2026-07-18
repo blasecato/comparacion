@@ -5,6 +5,7 @@ import {
   ExclamationCircleOutlined,
   WarningOutlined,
   TableOutlined,
+  IdcardOutlined,
   DownloadOutlined,
 } from '@ant-design/icons'
 import SummaryCard from '../../molecules/SummaryCard'
@@ -27,6 +28,7 @@ function ResultsStep({
   title = 'Paso 7: Resultados de la Validación',
   soloALabel = 'Solo en PDF',
   soloBLabel = 'Solo en Excel',
+  soloCLabel, // opcional: si se pasa, agrega la tarjeta "Solo en cédulas"
   filePrefix = 'validacion',
 }) {
   const [filter, setFilter] = useState(null)
@@ -54,6 +56,17 @@ function ResultsStep({
       count: summary.soloPdf,
       label: soloALabel,
     },
+    ...(soloCLabel
+      ? [
+          {
+            status: STATUS.SOLO_CEDULAS,
+            variant: 'cedulas',
+            icon: <IdcardOutlined />,
+            count: summary.soloCedulas || 0,
+            label: soloCLabel,
+          },
+        ]
+      : []),
     {
       status: STATUS.SOLO_EXCEL,
       variant: 'excel',
@@ -62,6 +75,15 @@ function ResultsStep({
       label: soloBLabel,
     },
   ]
+
+  // Etiquetas de estado para la tabla (columna Estado), según este paso.
+  const statusLabels = {
+    [STATUS.CORRECTO]: 'Correcto',
+    [STATUS.ERROR]: 'Con Error',
+    [STATUS.SOLO_PDF]: soloALabel,
+    [STATUS.SOLO_EXCEL]: soloBLabel,
+    [STATUS.SOLO_CEDULAS]: soloCLabel || 'Solo en cédulas',
+  }
 
   const filtered = useMemo(
     () => (filter ? rows.filter((r) => r.estado === filter) : rows),
@@ -127,7 +149,7 @@ function ResultsStep({
         </Button>
       </div>
 
-      <ResultsTable rows={filtered} />
+      <ResultsTable rows={filtered} statusLabels={statusLabels} />
     </div>
   )
 }

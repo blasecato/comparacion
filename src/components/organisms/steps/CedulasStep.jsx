@@ -1,80 +1,68 @@
 import { useState } from 'react'
-import { Upload, Alert, Spin, Progress, message } from 'antd'
+import { Upload, Alert, Spin, message } from 'antd'
 import { IdcardOutlined, InboxOutlined } from '@ant-design/icons'
-import { parseCedulas } from '../../../lib/cedulaParser'
+import { parseCedulasExcel } from '../../../lib/cedulasExcelParser'
 import './step.css'
 
 /**
- * Organismo (paso 2): carga del PDF de documentos de identidad (cédulas,
- * tarjetas de identidad, pasaportes). Recorre todas las páginas con OCR.
+ * Organismo (paso 2): carga del Excel de cédulas (nombre, fecha de
+ * nacimiento, tipo de sangre, mayor/menor, tipo y número de documento).
  */
 function CedulasStep({ data, onParsed }) {
   const [loading, setLoading] = useState(false)
-  const [progress, setProgress] = useState(null)
 
   const handleFile = async (file) => {
     setLoading(true)
-    setProgress({ stage: 'Abriendo PDF…', progress: 0 })
     try {
-      const result = await parseCedulas(file, setProgress)
+      const result = await parseCedulasExcel(file)
       if (!result.records.length) {
-        message.warning('No se detectaron documentos. Podrás agregarlos manualmente.')
+        message.warning('No se encontraron registros en el Excel.')
       } else {
-        message.success(`PDF leído: ${result.records.length} documentos.`)
+        message.success(`Excel leído: ${result.records.length} registros.`)
       }
       onParsed({ ...result, fileName: file.name })
     } catch (err) {
       console.error(err)
-      message.error('No se pudo leer el PDF de documentos.')
+      message.error('No se pudo leer el Excel de cédulas.')
     } finally {
       setLoading(false)
-      setProgress(null)
     }
     return false
   }
 
   return (
     <div className="step">
-      <h3 className="step__title">Paso 2: Cargar PDF de documentos de identidad</h3>
+      <h3 className="step__title">Paso 2: Cargar Excel de cédulas</h3>
       <p className="step__hint">
-        Sube el PDF con las cédulas, tarjetas de identidad o pasaportes. Se
-        recorren todas las páginas con OCR para extraer los datos de cada
-        persona. Puede tardar unos segundos por documento.
+        Sube el Excel con los datos de los documentos: nombre, fecha de
+        nacimiento, tipo de sangre, mayor/menor, tipo y número de documento.
       </p>
 
-      <Spin
-        spinning={loading}
-        tip={progress ? `${progress.stage} ${progress.progress}%` : 'Procesando…'}
-      >
+      <Spin spinning={loading}>
         <Upload.Dragger
-          accept=".pdf"
+          accept=".xlsx,.xls"
           multiple={false}
           maxCount={1}
           beforeUpload={handleFile}
           showUploadList={false}
-          disabled={loading}
         >
           <p className="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
           <p className="ant-upload-text">
-            Arrastra el PDF de documentos aquí o haz clic para seleccionarlo
+            Arrastra el Excel de cédulas aquí o haz clic para seleccionarlo
           </p>
         </Upload.Dragger>
       </Spin>
 
-      {loading && progress && (
-        <Progress percent={progress.progress} strokeColor="#7c4dff" />
-      )}
-
-      {data && !loading && (
+      {data && (
         <Alert
           className="step__result"
-          type="warning"
+          type="success"
           showIcon
           icon={<IdcardOutlined />}
           message={`${data.fileName} — ${data.records.length} documentos`}
-          description="Extraído por OCR sobre fotocopias. Revísalo en el siguiente paso."
+          description="Revísalo en el siguiente paso."
         />
       )}
     </div>

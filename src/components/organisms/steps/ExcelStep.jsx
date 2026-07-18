@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { Upload, Alert, Spin, message } from 'antd'
+import { Upload, Alert, Spin, Input, Button, message } from 'antd'
 import { FileExcelOutlined, InboxOutlined } from '@ant-design/icons'
 import { parseExcel } from '../../../lib/excelParser'
 import './step.css'
 
+const POBLACIONES = ['PV', 'CAMPESINA', 'REGULAR', 'TECNOACADEMIA']
+
 /**
- * Organismo (paso 1): carga y lectura del Excel de inscripciones.
+ * Organismo (paso 1): datos de la ficha. Nombre del docente + tipo de
+ * población + carga y lectura del Excel de inscripciones.
  */
-function ExcelStep({ data, onParsed }) {
+function ExcelStep({ data, docente, poblacion, onDocente, onPoblacion, onParsed }) {
   const [loading, setLoading] = useState(false)
 
   const handleFile = async (file) => {
@@ -31,28 +34,59 @@ function ExcelStep({ data, onParsed }) {
 
   return (
     <div className="step">
-      <h3 className="step__title">Paso 1: Cargar Excel de inscripciones</h3>
-      <p className="step__hint">
-        Sube el reporte de inscripciones (.xlsx / .xls). Leeremos la tabla de
-        participantes (identificación, nombre y estado).
-      </p>
+      <h3 className="step__title">Paso 1: Datos de la Ficha</h3>
 
-      <Spin spinning={loading}>
-        <Upload.Dragger
-          accept=".xlsx,.xls"
-          multiple={false}
-          maxCount={1}
-          beforeUpload={handleFile}
-          showUploadList={false}
-        >
-          <p className="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
-          <p className="ant-upload-text">
-            Arrastra el Excel aquí o haz clic para seleccionarlo
-          </p>
-        </Upload.Dragger>
-      </Spin>
+      <div className="field">
+        <label className="field__label">
+          Nombre del docente <span className="field__req">*</span>
+        </label>
+        <Input
+          placeholder="Escribe el nombre del instructor"
+          value={docente}
+          onChange={(e) => onDocente(e.target.value)}
+          allowClear
+        />
+      </div>
+
+      <div className="field">
+        <label className="field__label">
+          Tipo de población <span className="field__req">*</span>
+        </label>
+        <div className="poblacion-group">
+          {POBLACIONES.map((p) => (
+            <Button
+              key={p}
+              type={poblacion === p ? 'primary' : 'default'}
+              className="poblacion-group__btn"
+              onClick={() => onPoblacion(p)}
+            >
+              {p}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="field">
+        <label className="field__label">
+          Excel de inscripciones <span className="field__req">*</span>
+        </label>
+        <Spin spinning={loading}>
+          <Upload.Dragger
+            accept=".xlsx,.xls"
+            multiple={false}
+            maxCount={1}
+            beforeUpload={handleFile}
+            showUploadList={false}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">
+              Arrastra el Excel aquí o haz clic para seleccionarlo
+            </p>
+          </Upload.Dragger>
+        </Spin>
+      </div>
 
       {data && (
         <Alert

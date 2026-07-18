@@ -4,6 +4,7 @@ import {
   ExclamationCircleFilled,
   WarningFilled,
   TableOutlined,
+  IdcardFilled,
 } from '@ant-design/icons'
 import { STATUS } from '../../lib/compare'
 
@@ -28,17 +29,22 @@ const CONFIG = {
     label: 'Solo en Excel',
     icon: <TableOutlined />,
   },
+  [STATUS.SOLO_CEDULAS]: {
+    color: 'purple',
+    label: 'Solo en cédulas',
+    icon: <IdcardFilled />,
+  },
 }
 
 /**
  * Átomo: etiqueta de estado con color e icono según el resultado de la
- * comparación.
+ * comparación. `label` permite sobreescribir el texto según el paso.
  */
-function StatusTag({ status }) {
+function StatusTag({ status, label }) {
   const cfg = CONFIG[status] || { color: 'default', label: status }
   return (
     <Tag color={cfg.color} icon={cfg.icon} bordered={false}>
-      {cfg.label}
+      {label || cfg.label}
     </Tag>
   )
 }

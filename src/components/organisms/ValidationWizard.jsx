@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from 'antd'
 import { LeftOutlined, RightOutlined, ReloadOutlined } from '@ant-design/icons'
 import Stepper from '../molecules/Stepper'
 import ExcelStep from './steps/ExcelStep'
 import CedulasStep from './steps/CedulasStep'
 import CedulasReviewStep from './steps/CedulasReviewStep'
-import PdfStep from './steps/PdfStep'
+import PlanillaStep from './steps/PlanillaStep'
 import ReviewStep from './steps/ReviewStep'
 import AnalyzingStep from './steps/AnalyzingStep'
 import ResultsStep from './steps/ResultsStep'
@@ -14,11 +14,11 @@ import './ValidationWizard.css'
 
 const STEPS = [
   { title: 'Datos de Ficha', subtitle: 'Carga el Excel' },
-  { title: 'Documentos', subtitle: 'Carga el PDF de cédulas' },
-  { title: 'Revisar Documentos', subtitle: 'Verifica la extracción' },
+  { title: 'Cédulas', subtitle: 'Carga el Excel de cédulas' },
+  { title: 'Revisar Cédulas', subtitle: 'Verifica los datos' },
   { title: 'Comparar Cédulas', subtitle: 'Excel vs cédulas' },
-  { title: 'Subir PDF', subtitle: 'Carga la planilla' },
-  { title: 'Revisar Datos', subtitle: 'Verifica la extracción' },
+  { title: 'Planilla', subtitle: 'Carga el Excel de planilla' },
+  { title: 'Revisar Planilla', subtitle: 'Verifica los datos' },
   { title: 'Comparar', subtitle: 'Excel + cédulas + planilla' },
 ]
 
@@ -33,6 +33,16 @@ const withIds = (records, prefix) =>
  */
 function ValidationWizard() {
   const [current, setCurrent] = useState(0)
+  const [maxReached, setMaxReached] = useState(0)
+
+  // Recuerda el paso más lejano alcanzado (para poder volver clickeando).
+  useEffect(() => {
+    setMaxReached((m) => Math.max(m, current))
+  }, [current])
+
+  // --- datos de la ficha (paso 1) ---
+  const [docente, setDocente] = useState('')
+  const [poblacion, setPoblacion] = useState('')
 
   // --- datos extraídos (JSON) ---
   const [excelData, setExcelData] = useState(null) // { meta, records[], fileName }
@@ -49,16 +59,20 @@ function ValidationWizard() {
   const meta = {
     ficha: excelData?.meta.ficha || pdfInfo?.meta.ficha || '',
     programa: excelData?.meta.programa || pdfInfo?.meta.programa || '',
+    instructor: docente || '',
+    poblacion,
   }
+
+  const fichaLista = Boolean(excelData && docente.trim() && poblacion)
 
   const handleCedulas = (data) => {
     setCedulasInfo({ fileName: data.fileName })
     setCedulasRecords(withIds(data.records, 'ced'))
   }
 
-  const handlePdf = (data) => {
-    setPdfInfo({ meta: data.meta, fileName: data.fileName, scanned: data.scanned })
-    setPdfRecords(withIds(data.records, 'pdf'))
+  const handlePlanilla = (data) => {
+    setPdfInfo({ meta: data.meta, fileName: data.fileName })
+    setPdfRecords(withIds(data.records, 'pla'))
   }
 
   // Paso 4: Excel vs cédulas
@@ -81,6 +95,8 @@ function ValidationWizard() {
   }
 
   const reset = () => {
+    setDocente('')
+    setPoblacion('')
     setExcelData(null)
     setCedulasInfo(null)
     setCedulasRecords([])
@@ -90,19 +106,42 @@ function ValidationWizard() {
     setResult(null)
     setAnalyzing(false)
     setCurrent(0)
+    setMaxReached(0)
   }
 
   const back = () => setCurrent((c) => c - 1)
   const next = () => setCurrent((c) => c + 1)
 
+  // Salta a un paso ya visitado (conservando todo lo registrado).
+  const goToStep = (i) => {
+    if (i <= maxReached) {
+      setAnalyzing(false)
+      setCurrent(i)
+    }
+  }
+
   return (
     <div className="wizard">
       <div className="wizard__stepper">
-        <Stepper steps={STEPS} current={current} />
+        <Stepper
+          steps={STEPS}
+          current={current}
+          maxReached={maxReached}
+          onStepClick={goToStep}
+        />
       </div>
 
       <div className="wizard__panel">
-        {current === 0 && <ExcelStep data={excelData} onParsed={setExcelData} />}
+        {current === 0 && (
+          <ExcelStep
+            data={excelData}
+            docente={docente}
+            poblacion={poblacion}
+            onDocente={setDocente}
+            onPoblacion={setPoblacion}
+            onParsed={setExcelData}
+          />
+        )}
 
         {current === 1 && (
           <CedulasStep
@@ -122,26 +161,22 @@ function ValidationWizard() {
           <ResultsStep
             result={resultCedulas}
             meta={meta}
-            title="Paso 4: Comparación Excel vs Cédulas"
+            title="Paso 4: Comparación Reporte de Inscripción vs Cédulas"
             soloALabel="Solo en Cédulas"
-            soloBLabel="Solo en Excel"
+            soloBLabel="Solo en Reporte de Inscripción"
             filePrefix="comparacion_cedulas"
           />
         )}
 
         {current === 4 && (
-          <PdfStep
+          <PlanillaStep
             data={pdfInfo && { ...pdfInfo, records: pdfRecords }}
-            onParsed={handlePdf}
+            onParsed={handlePlanilla}
           />
         )}
 
         {current === 5 && (
-          <ReviewStep
-            records={pdfRecords}
-            scanned={pdfInfo?.scanned}
-            onChange={setPdfRecords}
-          />
+          <ReviewStep records={pdfRecords} onChange={setPdfRecords} />
         )}
 
         {current === 6 && analyzing && (
@@ -151,9 +186,10 @@ function ValidationWizard() {
           <ResultsStep
             result={result}
             meta={meta}
-            title="Paso 7: Resultados de la Validación (Excel + Cédulas + Planilla)"
-            soloALabel="Solo en PDFs"
-            soloBLabel="Solo en Excel"
+            title="Paso 7: Resultados de la Validación (Reporte + Cédulas + Planilla)"
+            soloALabel="Solo en la Planilla"
+            soloCLabel="Solo en las Cédulas"
+            soloBLabel="Solo en Reporte de Inscripción"
             filePrefix="validacion"
           />
         )}
@@ -168,7 +204,7 @@ function ValidationWizard() {
           {current === 0 && (
             <Button
               type="primary"
-              disabled={!excelData}
+              disabled={!fichaLista}
               onClick={next}
               icon={<RightOutlined />}
               iconPosition="end"

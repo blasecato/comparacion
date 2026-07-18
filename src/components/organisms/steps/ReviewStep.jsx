@@ -1,18 +1,27 @@
 import { useState } from 'react'
-import { Table, Input, Select, Button, Tag, Popconfirm, Alert } from 'antd'
+import { Table, Input, Select, Button, Tag, Popconfirm } from 'antd'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import './step.css'
 
 let seq = 0
-const newRow = () => ({ id: `new-${seq++}`, doc: '', nombre: '', tipo: 'CC', pag: '', firmo: 'No' })
+const newRow = () => ({
+  id: `new-${seq++}`,
+  doc: '',
+  nombre: '',
+  tipo: 'CC',
+  pag: '',
+  firmo: 'No',
+  correo: '',
+  telefono: '',
+})
 
 const PAGE_SIZE = 15
 
 /**
- * Organismo (paso 3): "Revisar Datos". Tabla editable con lo extraído del
- * PDF. El usuario corrige el borrador del OCR antes de comparar.
+ * Organismo (paso 6): "Revisar Planilla". Tabla editable con los datos del
+ * Excel de la planilla. El usuario corrige antes de comparar.
  */
-function ReviewStep({ records, scanned, onChange }) {
+function ReviewStep({ records, onChange }) {
   const [page, setPage] = useState(1)
 
   const update = (id, field, value) =>
@@ -67,6 +76,32 @@ function ReviewStep({ records, scanned, onChange }) {
       ),
     },
     {
+      title: 'Correo',
+      dataIndex: 'correo',
+      width: 200,
+      render: (v, r) => (
+        <Input
+          size="small"
+          value={v || ''}
+          placeholder="Correo electrónico"
+          onChange={(e) => update(r.id, 'correo', e.target.value)}
+        />
+      ),
+    },
+    {
+      title: 'Teléfono',
+      dataIndex: 'telefono',
+      width: 140,
+      render: (v, r) => (
+        <Input
+          size="small"
+          value={v || ''}
+          placeholder="Teléfono"
+          onChange={(e) => update(r.id, 'telefono', e.target.value)}
+        />
+      ),
+    },
+    {
       title: 'Firmó',
       dataIndex: 'firmo',
       width: 90,
@@ -109,20 +144,11 @@ function ReviewStep({ records, scanned, onChange }) {
 
   return (
     <div className="step">
-      <h3 className="step__title">Paso 3: Revisar Datos</h3>
+      <h3 className="step__title">Paso 6: Revisar Planilla</h3>
       <p className="step__hint">
-        Verifica y corrige lo extraído del PDF antes de comparar contra el
-        Excel. Puedes editar cualquier celda, agregar o eliminar filas.
+        Verifica y corrige los datos del Excel de la planilla antes de
+        comparar. Puedes editar cualquier celda, agregar o eliminar filas.
       </p>
-
-      {scanned && (
-        <Alert
-          type="warning"
-          showIcon
-          message="PDF escaneado: la extracción es automática (OCR) y puede tener errores."
-          description="Revisa especialmente los números de documento."
-        />
-      )}
 
       <div className="review__toolbar">
         <Tag>{records.length} registros</Tag>

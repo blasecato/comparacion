@@ -55,3 +55,7 @@
   --card-bg: #eaf2fd;
   --card-fg: #2563eb;
 }
+.summary-card--cedulas {
+  --card-bg: #f3ecfd;
+  --card-fg: #7c3aed;
+}
